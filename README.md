@@ -1,6 +1,4 @@
 # boomiprocesslauncher
-Launch process via Boomi API call
-
 This script runs a Boomi integration process via Boomi API call.
 
 It verifies the following:
