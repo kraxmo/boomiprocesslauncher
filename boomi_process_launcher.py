@@ -379,7 +379,7 @@ class BoomiAPI():
             raise
         
         except Exception as err:
-            print(self.format_log_message("Parsing dynamic process properties", None, err, method_signature))
+            print(self.format_log_message("Parsing dynamic process properties", None, err, method_signature if verbose==True else None))
             raise ScriptExitException   # exit script
 
     def retrieve_api_settings(self):
@@ -396,7 +396,7 @@ class BoomiAPI():
             password = config.get(key, "password")
 
         except Exception as err:
-            print(self.format_log_message(f"Reading configuration file {config_file}", None, err, method_signature))
+            print(self.format_log_message(f"Reading configuration file {config_file}", None, err, method_signature if verbose==True else None))
             raise ScriptExitException   # exit script
             
         self.api_url, self.path_url, self.username, self.password = api_url, path_url, username, password
@@ -440,9 +440,9 @@ class ScriptExitException(Exception):
 if __name__ == "__main__":
     verbose = False
     if DEBUG:
-        atom_name = "atom_name"
-        process_name = "process_name"
-        dynamic_properties = "key1:value1;key2:value2"
+        atom_name = "Test Analytics"
+        process_name = "Jim_Test"
+        dynamic_properties = "Jim_Test_EmailTo:jkraxberger@schoolsfirstfcu.org;Jim_Test_WaitPeriod:5;Jim_Test_SendEmailYN:Y"
         wait = True
         verbose = True
         # atom_name = '1'
