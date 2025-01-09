@@ -440,9 +440,9 @@ class ScriptExitException(Exception):
 if __name__ == "__main__":
     verbose = False
     if DEBUG:
-        atom_name = "Test Analytics"
-        process_name = "Jim_Test"
-        dynamic_properties = "Jim_Test_EmailTo:jkraxberger@schoolsfirstfcu.org;Jim_Test_WaitPeriod:5;Jim_Test_SendEmailYN:Y"
+        atom_name = "atom_name"
+        process_name = "process_name"
+        dynamic_properties = "key1:value1;key2:value2"
         wait = True
         verbose = True
         # atom_name = '1'
