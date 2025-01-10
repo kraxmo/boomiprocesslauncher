@@ -133,72 +133,6 @@ class BoomiAPI():
 
         return log
 
-    def run_process(self) -> None:
-        """Run Boomi atom process"""
-        EXIT_CODE_SUCCESSFUL = 0
-        EXIT_CODE_ERROR      = 1
-        
-        exit_code = EXIT_CODE_ERROR         # set execution to error status
-        try:
-            if atom_name is None or len(atom_name.strip()) == 0:
-                print(self.format_log_message("ERROR Atom name cannot be blank"))
-                raise ScriptExitException   # exit script
-
-            self.atom_name          = atom_name.strip()
-            if process_name is None or len(process_name.strip()) == 0:
-                print(self.format_log_message("ERROR Process name cannot be blank"))
-                raise ScriptExitException   # exit script
-
-            self.process_name       = process_name.strip()
-            self.wait               = wait
-            self.dynamic_properties = dynamic_properties
-
-            self.retrieve_api_settings()    # read sensitive information from external configuration file
-            self.connect_to_api()           # connect to Boomi api
-            self.verify_atom_name()         # verify atom name exists
-            self.verify_environment()       # verify atom environment exists
-            self.verify_process_name()      # verify process name exists
-            self.verify_deployed_process()  # verify process is deployed in atom environment
-            self.initiate_process()         # start executing process name in atom name
-            
-            # check to see if process is running
-            wait_seconds = 1
-            wait_seconds = self.monitor_process(wait_seconds)
-            if not self.wait:                           # exit script if waiting for Boomi process to finish is not required
-                if self.execution_status in self.EXECUTION_STATUS["TERMINATED"]:
-                    print(self.format_log_message(f"Process {self.process_name} failed to start", None, f"{self.execution_status}"))
-                else:                    
-                    print(self.format_log_message(f"Process {self.process_name} successfully sent to Boomi Atom {self.atom_name}"))
-                    exit_code = EXIT_CODE_SUCCESSFUL    # set execution for successful processing status
-                
-                raise ScriptExitException               # exit script
-
-            self.delay_execution(wait_seconds)          # pause between initial check and subsequent checking
-
-            # if execution status not successful, monitor process for some status
-            if self.execution_status not in self.EXECUTION_STATUS['SUCCESS']:
-                self.monitor_process(wait_seconds)
-
-            if self.execution_status == 'COMPLETE':     # report complete status
-                print(self.format_log_message(f"Process completed successfully at {self.execution_completed_timestamp}"))
-                exit_code = EXIT_CODE_SUCCESSFUL        # set execution for successful processing status
-                raise ScriptExitException               # exit script
-
-            if 'result' in self.response['result'][0]:  # report incomplete or unknown status
-                if 'message' in self.response['result'][0]:
-                    print(self.format_log_message(f"{self.response['result'][0]['message']}"))
-            else:
-                print(self.format_log_message(f"WARNING: Unable to determine status of process {self.process_name} execution"))
-                
-        except ScriptExitException:
-            pass            # if execution comes here at any time, pass to script exit point
-
-        except Exception as err:
-            print(self.format_log_message("ERROR Executing Boomi API Process steps", None, err))
-        
-        finally:
-            exit(exit_code) # script exit point
-
     def get_requested_id(self, action: str, endpoint: str, body: str, status_codes: set, name: str, description: str, value: str) -> str:
         """Retrieve requested id using API endpoint and body
 
@@ -412,6 +346,72 @@ class BoomiAPI():
             
         self.api_url, self.path_url, self.username, self.password = api_url, path_url, username, password
 
+    def run_process(self) -> None:
+        """Run Boomi atom process"""
+        EXIT_CODE_SUCCESSFUL = 0
+        EXIT_CODE_ERROR      = 1
+        
+        exit_code = EXIT_CODE_ERROR         # set execution to error status
+        try:
+            if atom_name is None or len(atom_name.strip()) == 0:
+                print(self.format_log_message("ERROR Atom name cannot be blank"))
+                raise ScriptExitException   # exit script
+
+            self.atom_name          = atom_name.strip()
+            if process_name is None or len(process_name.strip()) == 0:
+                print(self.format_log_message("ERROR Process name cannot be blank"))
+                raise ScriptExitException   # exit script
+
+            self.process_name       = process_name.strip()
+            self.wait               = wait
+            self.dynamic_properties = dynamic_properties
+
+            self.retrieve_api_settings()    # read sensitive information from external configuration file
+            self.connect_to_api()           # connect to Boomi api
+            self.verify_atom_name()         # verify atom name exists
+            self.verify_environment()       # verify atom environment exists
+            self.verify_process_name()      # verify process name exists
+            self.verify_deployed_process()  # verify process is deployed in atom environment
+            self.initiate_process()         # start executing process name in atom name
+            
+            # check to see if process is running
+            wait_seconds = 1
+            wait_seconds = self.monitor_process(wait_seconds)
+            if not self.wait:                           # exit script if waiting for Boomi process to finish is not required
+                if self.execution_status in self.EXECUTION_STATUS["TERMINATED"]:
+                    print(self.format_log_message(f"Process {self.process_name} failed to start", None, f"{self.execution_status}"))
+                else:                    
+                    print(self.format_log_message(f"Process {self.process_name} successfully sent to Boomi Atom {self.atom_name}"))
+                    exit_code = EXIT_CODE_SUCCESSFUL    # set execution for successful processing status
+                
+                raise ScriptExitException               # exit script
+
+            self.delay_execution(wait_seconds)          # pause between initial check and subsequent checking
+
+            # if execution status not successful, monitor process for some status
+            if self.execution_status not in self.EXECUTION_STATUS['SUCCESS']:
+                self.monitor_process(wait_seconds)
+
+            if self.execution_status == 'COMPLETE':     # report complete status
+                print(self.format_log_message(f"Process completed successfully at {self.execution_completed_timestamp}"))
+                exit_code = EXIT_CODE_SUCCESSFUL        # set execution for successful processing status
+                raise ScriptExitException               # exit script
+
+            if 'result' in self.response['result'][0]:  # report incomplete or unknown status
+                if 'message' in self.response['result'][0]:
+                    print(self.format_log_message(f"{self.response['result'][0]['message']}"))
+            else:
+                print(self.format_log_message(f"WARNING: Unable to determine status of process {self.process_name} execution"))
+                
+        except ScriptExitException:
+            pass            # if execution comes here at any time, pass to script exit point
+
+        except Exception as err:
+            print(self.format_log_message("ERROR Executing Boomi API Process steps", None, err))
+        
+        finally:
+            exit(exit_code) # script exit point
+
     def verify_atom_name(self) -> None:
         """Get Boomi Atom Id to verify Atom Name is valid"""
         endpoint = self.path_url + f"/Atom/query"
@@ -457,11 +457,14 @@ This script initiates a request to execute a Boomi atom process with dynamical p
 if __name__ == "__main__":
     verbose = False
     if DEBUG:
-        atom_name = "atom_name"
-        process_name = "process_name"
-        dynamic_properties = "key1:value1;key2:value2"
+        atom_name = "Test Analytics"
+        process_name = "Jim_Test"
+        dynamic_properties = "Jim_Test_EmailTo:jkraxberger@schoolsfirstfcu.org;Jim_Test_WaitPeriod:5;Jim_Test_SendEmailYN:Y"
         wait = True
         verbose = True
+        # atom_name = '1'
+        # process_name = '1'
+        # dynamic_properties = ";;;" # "bif"
     else:
         parser = argparse.ArgumentParser(
             description="Execute a Boomi process and wait for completion",
