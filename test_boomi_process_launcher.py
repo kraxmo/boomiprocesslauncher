@@ -16,7 +16,7 @@ def identify(func):
 
 class TestMain1(ut1.TestCase):
     def setUp(self):
-        self.boomi = BoomiAPI()
+        self.boomi = BoomiAPI("atom_name", "process_name", False, None, False)
 
     @identify
     def test_convert_from_iso_to_local(self):
@@ -33,7 +33,7 @@ class TestMain1(ut1.TestCase):
 
 class TestMain2(ut1.TestCase):
     def setUp(self):
-        self.boomi = BoomiAPI()
+        self.boomi = BoomiAPI("atom_name", "process_name", False, None, False)
 
     @patch('datetime.datetime', autospec=True)
     @patch('boomi_process_launcher.datetime', autospec=True)
@@ -66,7 +66,7 @@ class TestMain2(ut1.TestCase):
 
 class TestMain3(ut1.TestCase):
     def setUp(self):
-        self.boomi = BoomiAPI()
+        self.boomi = BoomiAPI("atom_name", "process_name", False, None, False)
         self.python_script_path = ''
 
     @identify

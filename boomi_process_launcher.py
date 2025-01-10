@@ -30,16 +30,8 @@ from os import path
 import sys as s1
 import time as t1
 
-DEBUG = False
-HELP_EPILOG = '''
-
-This script initiates a request to execute a Boomi atom process with dynamical process properties (optional) and can wait (optionally) for execution completion (either SUCCESS or FAILURE).
-
-'''
-
 class BoomiAPI():
     """Call Boomi API to execute process using atom name, process name and optional dynamic process properties"""
-
     DAILY_SECONDS              = 86400
     CONFIGURATION_FILENAME     = r'\boomi_process_launcher.ini'
     EXECUTION_STATUS           = {
@@ -56,8 +48,27 @@ class BoomiAPI():
     TOTAL_TRIES                = 3
     VALID_RESPONSE_CODES       = {RESPONSE_CODE_200_OK, RESPONSE_CODE_202_ACCEPTED}
 
+    def __init__(self, atom_name: str, process_name: str, wait: bool, dynamic_properties: str=None, verbose: bool=False):
+        try:
+            if atom_name is None or len(atom_name.strip()) == 0:
+                print(self.format_log_message("ERROR Atom name cannot be blank"))
+                raise ScriptExitException   # exit script
+
+            self.atom_name          = atom_name.strip()
+            if process_name is None or len(process_name.strip()) == 0:
+                print(self.format_log_message("ERROR Process name cannot be blank"))
+                raise ScriptExitException   # exit script
+
+            self.process_name       = process_name.strip()
+            self.wait               = wait
+            self.dynamic_properties = dynamic_properties
+            self.verbose            = verbose
+
+        except ScriptExitException:
+            exit(1)     # script exit
+
     def connect_to_api(self) -> None:
-        """_summary_
+        """Establish Boomi API connection with headers
 
         Args:
             api_url (str): Boomi API url
@@ -122,7 +133,7 @@ class BoomiAPI():
 
         return log
 
-    def run_process(self, atom_name: str, process_name: str, wait: bool, dynamic_properties: str=None, verbose: bool=False) -> None:
+    def run_process(self) -> None:
         """Run Boomi atom process"""
         EXIT_CODE_SUCCESSFUL = 0
         EXIT_CODE_ERROR      = 1
@@ -222,7 +233,7 @@ class BoomiAPI():
                                 print(self.format_log_message(f"{description} ID:", response['result'][0][name]))
                                 return response['result'][0][name]  # return requested id
                             
-                        print(self.format_log_message(f"{results} {description} found with name '{value}'", None, method_signature if verbose==True else None))
+                        print(self.format_log_message(f"{results} {description} found with name '{value}'", None, method_signature if self.verbose==True else None))
                         raise ScriptExitException   # exit script
                     else:
                         if action == 'execution':
@@ -236,14 +247,14 @@ class BoomiAPI():
                 print(self.format_log_message(f"Failed: {description}.", f"Retrying in {self.MAX_WAIT_SECONDS} seconds. ({execution_status})"))
                 t1.sleep(self.MAX_WAIT_SECONDS)
 
-            print(self.format_log_message(f"No {description} found", None, method_signature if verbose==True else None))
+            print(self.format_log_message(f"No {description} found", None, method_signature if self.verbose==True else None))
             
         except ScriptExitException:
             # if execution comes here, re-raise it to exit script
             raise
             
         except Exception as err:
-            print(self.format_log_message("Processing POST request", None, err , method_signature if verbose==True else None))
+            print(self.format_log_message("Processing POST request", None, err , method_signature if self.verbose==True else None))
 
         raise ScriptExitException   # force exit as TOTAL_ATTEMPTS exceeded
 
@@ -293,7 +304,7 @@ class BoomiAPI():
                 t1.sleep(self.MAX_WAIT_SECONDS)
 
         except Exception as err:
-            print(self.format_log_message(f"Processing HTTP {method} request", None, err, method_signature if verbose==True else None))
+            print(self.format_log_message(f"Processing HTTP {method} request", None, err, method_signature if self.verbose==True else None))
             raise ScriptExitException   # exit script
 
         finally:
@@ -345,7 +356,7 @@ class BoomiAPI():
                 wait_seconds = self.delay_execution(wait_seconds)
 
         except Exception as err:
-            print(self.format_log_message("Processing HTTP GET request", None, err, method_signature if verbose==True else None))
+            print(self.format_log_message("Processing HTTP GET request", None, err, method_signature if self.verbose==True else None))
             raise ScriptExitException   # exit script
 
     def parse_dynamic_properties(self) -> dict:
@@ -364,7 +375,7 @@ class BoomiAPI():
             for pair in pairs:
                 if pair:    # pair is not blank (multiple/leading/trailing ;)
                     if ":" not in pair:
-                        print(self.format_log_message(f"Invalid key:pair data format for pair '{pair}'", None, method_signature if verbose==True else None))
+                        print(self.format_log_message(f"Invalid key:pair data format for pair '{pair}'", None, method_signature if self.verbose==True else None))
                         raise ScriptExitException   # exit script
                     else:
                         name, value = pair.split(":", 1)
@@ -379,7 +390,7 @@ class BoomiAPI():
             raise
         
         except Exception as err:
-            print(self.format_log_message("Parsing dynamic process properties", None, err, method_signature if verbose==True else None))
+            print(self.format_log_message("Parsing dynamic process properties", None, err, method_signature if self.verbose==True else None))
             raise ScriptExitException   # exit script
 
     def retrieve_api_settings(self):
@@ -396,7 +407,7 @@ class BoomiAPI():
             password = config.get(key, "password")
 
         except Exception as err:
-            print(self.format_log_message(f"Reading configuration file {config_file}", None, err, method_signature if verbose==True else None))
+            print(self.format_log_message(f"Reading configuration file {config_file}", None, err, method_signature if self.verbose==True else None))
             raise ScriptExitException   # exit script
             
         self.api_url, self.path_url, self.username, self.password = api_url, path_url, username, password
@@ -437,6 +448,12 @@ class ScriptExitException(Exception):
     """
     pass
 
+DEBUG = False
+HELP_EPILOG = '''
+
+This script initiates a request to execute a Boomi atom process with dynamical process properties (optional) and can wait (optionally) for execution completion (either SUCCESS or FAILURE).
+
+'''
 if __name__ == "__main__":
     verbose = False
     if DEBUG:
@@ -445,9 +462,6 @@ if __name__ == "__main__":
         dynamic_properties = "key1:value1;key2:value2"
         wait = True
         verbose = True
-        # atom_name = '1'
-        # process_name = '1'
-        # dynamic_properties = ";;;" # "bif"
     else:
         parser = argparse.ArgumentParser(
             description="Execute a Boomi process and wait for completion",
@@ -466,5 +480,5 @@ if __name__ == "__main__":
         if len(dynamic_properties := args.dynamicprops):
             dynamic_properties = args.dynamicprops.strip()
 
-    launcher = BoomiAPI()
-    launcher.run_process(atom_name, process_name, wait, dynamic_properties, verbose)
+    launcher = BoomiAPI(atom_name, process_name, wait, dynamic_properties, verbose)
+    launcher.run_process()
