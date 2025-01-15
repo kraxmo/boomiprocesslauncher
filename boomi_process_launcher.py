@@ -93,9 +93,7 @@ class BoomiAPI():
         Returns: 
             (datetime): datetime in datetime format
         """
-        utc_time = iso_date.replace(tzinfo=timezone.utc)
-        local_time = utc_time.astimezone()
-        return local_time
+        return iso_date.replace(tzinfo=timezone.utc).astimezone(tz=None)
 
     def delay_execution(self, wait_seconds: int) -> int:
         """Delay execution for wait_seconds up to maximum wait period
@@ -122,6 +120,9 @@ class BoomiAPI():
             log (str): formatted OpCon log message
         """
         log = [str(datetime.now())+"\t"]
+        if section1 is None:
+            section1 = ""
+
         if section2 is None:
             log.append(section1)
         else:
@@ -130,8 +131,10 @@ class BoomiAPI():
 
         if section3 is not None:
             log.append("\n\t\t\t\t"+section3)
+
         if section4 is not None:
             log.append("\n\t\t\t\t"+section4)
+
         return "".join(log)
 
     def get_requested_id(self, action: str, endpoint: str, body: str, status_codes: set, name: str, description: str, value: str) -> str:
