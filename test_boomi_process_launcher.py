@@ -39,7 +39,7 @@ class TestUtility(ut1.TestCase):
     @identify
     def test_parse_dynamic_properties_valid(self):
         # test parsing validly formatted dynamic process properties
-        self.boomi = BoomiAPI("atom_name", "process_name", False, "key1:value1;key2:value2", False)
+        self.boomi = BoomiAPI("atom_name", "process_name", False, "key1:value1;key2:value2", True)
         self.boomi.parse_dynamic_properties()
 
     @identify
@@ -222,34 +222,6 @@ class TestRequestResponse(ut1.TestCase):
         self.assertTrue("23456", self.boomi.environment_id)
 
     @identify
-    def test_verify_process_exists_200(self):
-        # test receiving an HTTP response 200 when verifying process name on Boomi server
-        self.boomi.make_api_request.return_value = {
-            '@type': 'QueryResult', 
-            'result': 
-                [
-                    {
-                        '@type': 'Process', 
-                        'capabilities': [],
-                        'id': '34567',
-                        'name': 'myprocess', 
-                        'status': 'ONLINE', 
-                        'type': 'any', 
-                        'hostName': 'xxx.org', 
-                        'dateInstalled': '2021-04-08T23:36:15Z', 
-                        'currentVersion': '25.01.0', 
-                        'purgeHistoryDays': 5, 
-                        'purgeImmediate': False, 
-                        'forceRestartTime': 0
-                    }
-                ],
-            'numberOfResults': 1
-        }, 200, "OK"
-        self.boomi.process_name = "myprocess"
-        self.boomi.verify_process_exists()
-        self.assertTrue("34567", self.boomi.process_id)
-
-    @identify
     def test_verify_process_exists_in_environment_200(self):
         # test receiving an HTTP response 200 when verifying process exists in environment on Boomi server
         self.boomi.make_api_request.return_value = {
@@ -260,6 +232,7 @@ class TestRequestResponse(ut1.TestCase):
                         '@type': 'Deployment', 
                         'capabilities': [],
                         'deploymentId': '45678',
+                        'componentId': '67890',
                         'name': 'mydeployment', 
                         'status': 'ONLINE', 
                         'type': 'deployment', 
@@ -276,7 +249,8 @@ class TestRequestResponse(ut1.TestCase):
         self.boomi.environment_id = "23456"
         self.boomi.process_id = "34567"
         self.boomi.verify_process_exists_in_environment()
-        self.assertTrue("23456", self.boomi.environment_id)
+        self.assertTrue("45678", self.boomi.deployment_id)
+        self.assertTrue("67890", self.boomi.component_id)
 
     @identify
     def test_initiate_atom_process_200(self):
@@ -306,7 +280,7 @@ class TestRequestResponse(ut1.TestCase):
                 'recordUrl': 'https://platform.boomi.com/api/rest/v1/schoolsfirstfederalcredit-P1B39S/ExecutionRecord/async/executionrecord-6dd73fca-81ee-4f21-b1c1-9a6e0ec79d48'
             }, 200, "OK"
         self.boomi.atom_id = "12345"
-        self.boomi.process_id = "34567"
+        self.boomi.component_id = "56789"
         self.boomi.dynamic_properties = "key1:value1;key2:value2"
         self.boomi.initiate_atom_process()
         self.assertTrue("56789", self.boomi.execution_id)

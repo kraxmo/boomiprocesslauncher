@@ -108,7 +108,7 @@ class BoomiAPI():
         return min(wait_seconds * 2, self.MAX_WAIT_SECONDS)
 
     def format_log_message(self, section1: str, section2: str = None, section3: str = None, section4: str = None) -> str:
-        """Format message into log output format using time complexity O(n)
+        """Format message into OpCon log output format using time complexity O(n)
         
         Args:
             section1 (str): log section 1
@@ -318,7 +318,7 @@ class BoomiAPI():
         Returns: (dict): json-formatted Boomi API Dynamic Process Properties
         """
         method_signature = f"{__class__.__name__}.{inspect.stack()[0][3]}()"
-        if len(self.dynamic_properties.strip()) == 0:
+        if not self.dynamic_properties.strip():
             return ''
         
         try:
@@ -365,12 +365,12 @@ class BoomiAPI():
     def run_process(self) -> None:
         """Run Boomi atom process"""
         try:
-            if atom_name is None or len(atom_name.strip()) == 0:
+            if atom_name is None or not atom_name.strip():
                 print(self.format_log_message("ERROR Atom name cannot be blank"))
                 raise ScriptExitException   # exit script
 
             self.atom_name          = atom_name.strip()
-            if process_name is None or len(process_name.strip()) == 0:
+            if process_name is None or not process_name.strip():
                 print(self.format_log_message("ERROR Process name cannot be blank"))
                 raise ScriptExitException   # exit script
 
