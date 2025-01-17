@@ -6,10 +6,10 @@ External Dependencies:
 - boomi_process_launcher.ini
 
 Command Line Execution:
-- Windows     : py boomi_process_launcher "atom_name" "process_name" -d "property_key1:property_value1;property_key2:property_value2"
-- Windows wait: py boomi_process_launcher "atom_name" "process_name" -d "property_key1:property_value1;property_key2:property_value2" -w
-- Unix        : py boomi_process_launcher 'atom_name' 'process_name' -d 'property_key1:property_value1;property_key2:property_value2'
-- Unix    wait: py boomi_process_launcher 'atom_name' 'process_name' -d 'property_key1:property_value1;property_key2:property_value2' -w
+- Windows     : py boomi_process_launcher.py "atom_name" "process_name" -d "property_key1:property_value1;property_key2:property_value2"
+- Windows wait: py boomi_process_launcher.py "atom_name" "process_name" -d "property_key1:property_value1;property_key2:property_value2" -w
+- Unix        : py boomi_process_launcher.py 'atom_name' 'process_name' -d 'property_key1:property_value1;property_key2:property_value2'
+- Unix    wait: py boomi_process_launcher.py 'atom_name' 'process_name' -d 'property_key1:property_value1;property_key2:property_value2' -w
 """
 
 import argparse                         # parses command-line arguments
@@ -108,7 +108,7 @@ class BoomiAPI():
         return min(wait_seconds * 2, self.MAX_WAIT_SECONDS)
 
     def format_log_message(self, section1: str, section2: str = None, section3: str = None, section4: str = None) -> str:
-        """Format message into OpCon log output format using time complexity O(n)
+        """Format message into log output format using time complexity O(n)
         
         Args:
             section1 (str): log section 1
@@ -117,8 +117,9 @@ class BoomiAPI():
             section4 (str, optional): log section 4. Defaults to None.
             
         Returns: 
-            log (str): formatted OpCon log message
+            log (str): formatted log message
         """
+        newline_tabbed_insert = "\n\t\t\t\t"
         log = [str(datetime.now())+"\t"]
         if section1 is None:
             section1 = ""
@@ -130,10 +131,10 @@ class BoomiAPI():
             log.append(section2)
 
         if section3 is not None:
-            log.append("\n\t\t\t\t"+section3)
+            log.append(newline_tabbed_insert+section3)
 
         if section4 is not None:
-            log.append("\n\t\t\t\t"+section4)
+            log.append(newline_tabbed_insert+section4)
 
         return "".join(log)
 
@@ -149,7 +150,7 @@ class BoomiAPI():
             description (str): requested component name
             value (str): requested value
         
-        Returns: API requested id (str)
+        Returns: API requested id(s) (str)
         """
         method_signature = f"{__class__.__name__}.{inspect.stack()[0][3]}('{action}', '{endpoint}', '{body}', '{status_codes}', '{name}', '{description}', '{value}')"
         try:
@@ -162,15 +163,21 @@ class BoomiAPI():
                     print(self.format_log_message(f"POST {action.title()} {description} ID:", f"{status} {message} ({execution_status})"))
 
                 if status == self.RESPONSE_CODE_200_OK:
-                    if action == 'query':           # query (lookup) requested id
+                    if action =='query':   # query (lookup) requested id
                         if 'numberOfResults' in self.response:
                             results = self.response['numberOfResults']
                             if results == 1:
                                 if 'status' in self.response['result'][0]:
                                     execution_status = self.response['result'][0]['status']
 
-                                print(self.format_log_message(f"{description} ID:", self.response['result'][0][name]))
-                                return self.response['result'][0][name]  # return requested id
+                                if description == 'Deployment':
+                                    names = name.split(',')
+                                    print(self.format_log_message(f"{names[0]}:", f"{self.response['result'][0][names[0]]}"))
+                                    print(self.format_log_message(f"{names[1]}:", f"{self.response['result'][0][names[1]]}"))
+                                    return self.response['result'][0][names[0]], self.response['result'][0][names[1]]   # return deploymentId, componentId
+                                else:
+                                    print(self.format_log_message(f"{description} ID:", self.response['result'][0][name]))
+                                    return self.response['result'][0][name]  # return requested id
                             
                         print(self.format_log_message(f"{results} {description} found with name '{value}'", None, method_signature if self.verbose==True else None))
                         raise ScriptExitException   # exit script
@@ -202,7 +209,7 @@ class BoomiAPI():
         payload  = {
             '@type':'ExecutionRequest',
             "atomId": self.atom_id,
-            "processId": self.process_id
+            "processId": self.component_id
         }
         payload.update(self.parse_dynamic_properties())
         body = json.dumps(payload)
@@ -279,8 +286,8 @@ class BoomiAPI():
                             # If wait indicated and process executing, wait and check again
                             if wait and self.execution_status in self.EXECUTION_STATUS["PROCESSING"]:
                                 attempts += 1
-                                print(self.format_log_message(None, f"Retry attempt #{attempts}: retrying in {self.MAX_WAIT_SECONDS} seconds"))
-                                time.sleep(self.MAX_WAIT_SECONDS)
+                                print(self.format_log_message(None, f"Retry attempt #{attempts}: retrying in {wait_seconds} seconds"))
+                                wait_seconds = self.delay_execution(wait_seconds)
                                 continue                                
                                 
                             if 'recordedDate' in self.response['result'][0]:
@@ -375,7 +382,6 @@ class BoomiAPI():
             self.connect_to_api()
             self.verify_atom_exists()
             self.verify_atom_environment_exists()
-            self.verify_process_exists()
             self.verify_process_exists_in_environment()
             self.initiate_atom_process()
             
@@ -394,6 +400,8 @@ class BoomiAPI():
                     self.exit_code = self.EXIT_CODE_SUCCESS # set execution for successful processing status
                 
                 raise ScriptExitException                   # exit script
+
+            self.delay_execution(wait_seconds)
 
             # if execution status is currently processing, monitor process for known completion status
             if self.execution_status in self.EXECUTION_STATUS['PROCESSING']:
@@ -429,23 +437,14 @@ class BoomiAPI():
     def verify_process_exists_in_environment(self) -> None:
         """Get Boomi Deployment Id to verify Process Id is deployed within Environment ID"""
         endpoint = self.path_url + f"/DeployedPackage/query"
-        body     = json.dumps({'QueryFilter':{'expression':{'operator':'and','nestedExpression':[{'argument':[self.environment_id],'operator':'EQUALS','property':'environmentId'},{'argument':['process'],'operator':'EQUALS','property':'componentType'},{'argument':[True],'operator':'EQUALS','property':'active'},{'argument':[self.process_id],'operator':'EQUALS','property':'componentId'}]}}})
-        self.deployment_id = self.get_requested_id('query', endpoint, body, {self.RESPONSE_CODE_200_OK}, 'deploymentId', "Deployment", self.process_name)
+        body     = json.dumps({'QueryFilter':{'expression':{'operator':'and','nestedExpression':[{'argument':[self.environment_id],'operator':'EQUALS','property':'environmentId'},{'argument':['process'],'operator':'EQUALS','property':'componentType'},{'argument':[True],'operator':'EQUALS','property':'active'},{'argument':[self.process_name],'operator':'EQUALS','property':'componentName'}]}}})
+        self.deployment_id, self.component_id = self.get_requested_id('query', endpoint, body, {self.RESPONSE_CODE_200_OK}, 'deploymentId,componentId', "Deployment", self.process_name)
 
     def verify_atom_environment_exists(self) -> None:
         """Get Boomi Environment Id to verify Atom Id is valid"""
         endpoint = self.path_url + f"/EnvironmentAtomAttachment/query"
         body     = json.dumps({'QueryFilter':{'expression':{'argument':[self.atom_id],'operator':'EQUALS','property':'atomId'}}})
         self.environment_id = self.get_requested_id('query', endpoint, body, {self.RESPONSE_CODE_200_OK}, 'environmentId', "Environment", self.atom_name)
-
-    def verify_process_exists(self) -> None:
-        """Get Boomi Process Id to verify Process Name is valid
-        
-        Args: process_name (str): name of Boomi process
-        """
-        endpoint = self.path_url + f"/Process/query"
-        body     = json.dumps({'QueryFilter':{'expression':{'argument':[self.process_name],'operator':'EQUALS','property':'name'}}})
-        self.process_id = self.get_requested_id('query', endpoint, body, {self.RESPONSE_CODE_200_OK}, 'id', "Process", self.process_name)
 
 class ScriptExitException(Exception):
     """Placeholder exception to allow for programmatically graceful exits from the script
