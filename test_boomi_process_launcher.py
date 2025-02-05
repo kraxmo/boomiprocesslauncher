@@ -67,16 +67,12 @@ class TestPrintLogMessage(ut1.TestCase):
             ('1+2', '12345678901234567890123456789012345', 'section2', None, None),
             ('1+2+n', '12345', 'section2', 'section3', None),
             ('1+2+n', '12345', 'section2', 'section4', None),
-            ('4', '12345', 'section2', 'section3', 'section4'),
+            ('1+2+3+4', '12345', 'section2', 'section3', 'section4'),
         ]
 
         for lines, group1, group2, group3, group4 in groups:
             with self.subTest(lines=lines, group1=group1, group2=group2, group3=group3, group4=group4):
                 log = self.boomi.format_log_message(group1, group2, group3, group4)
-                log_values = log.split('\t')
-                for value in log_values:
-                    print(value, end='')
-                    
                 if lines == '1only':
                     self.assertEqual(f"{datetime.datetime.now()}\t{group1}", log)
                 elif lines == '2':

@@ -107,26 +107,29 @@ class BoomiAPI():
         time.sleep(wait_seconds)
         return min(wait_seconds * 2, self.MAX_WAIT_SECONDS)
 
-    def format_log_message(self, section1: str, section2: str = None, section3: str = None, section4: str = None) -> str:
+    def format_log_message(self, section1: str, *args) -> str:
         """Format message into OpCon log output format using time complexity O(n)
         
         Args:
-            section1 (str): log section 1
-            section2 (str, optional): log section 2. Defaults to None.
-            section3 (str, optional): log section 3. Defaults to None.
-            section4 (str, optional): log section 4. Defaults to None.
+            0 (str): log section 1
+            1 (str, optional): log section 2. Defaults to None.
+            2 (str, optional): log section 3. Defaults to None.
+            3 (str, optional): log section 4. Defaults to None.
             
         Returns: 
             log (str): formatted log message
         """
-        GROUP1_LENGTH = 31
-        newline_tabbed_insert = "\n\t\t\t\t"
+        if section1 is None and len(args) < 1: return ""
+        GROUP1_LENGTH         = 31
+        NEWLINE_TABBED_INSERT = "\n\t\t\t\t"
         log = [str(datetime.now())+"\t"]
         if section1 is None: section1 = ""
-        if section2: log.append(section1.ljust(GROUP1_LENGTH)[:GROUP1_LENGTH] + ' ' + section2)
-        else: log.append(section1)
-        if section3 is not None: log.append(newline_tabbed_insert+section3)
-        if section4 is not None: log.append(newline_tabbed_insert+section4)
+        if len(args) >= 1 and args[0] is not None: 
+            log.append(section1.ljust(GROUP1_LENGTH)[:GROUP1_LENGTH] + ' ' + args[0])
+        else: 
+            log.append(section1)
+        for ctr, value in enumerate(args[1:]):
+            if len(args) >= ctr and value is not None: log.append(NEWLINE_TABBED_INSERT+value)
         return "".join(log)
 
     def get_requested_id(self, action: str, endpoint: str, body: str, status_codes: set, name: str, description: str, value: str) -> str:
