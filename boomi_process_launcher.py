@@ -119,23 +119,14 @@ class BoomiAPI():
         Returns: 
             log (str): formatted log message
         """
+        GROUP1_LENGTH = 31
         newline_tabbed_insert = "\n\t\t\t\t"
         log = [str(datetime.now())+"\t"]
-        if section1 is None:
-            section1 = ""
-
-        if section2 is None:
-            log.append(section1)
-        else:
-            log.append(section1.ljust(self.GROUP1_LENGTH))
-            log.append(section2)
-
-        if section3 is not None:
-            log.append(newline_tabbed_insert+section3)
-
-        if section4 is not None:
-            log.append(newline_tabbed_insert+section4)
-
+        if section1 is None: section1 = ""
+        if section2: log.append(section1.ljust(GROUP1_LENGTH)[:GROUP1_LENGTH] + ' ' + section2)
+        else: log.append(section1)
+        if section3 is not None: log.append(newline_tabbed_insert+section3)
+        if section4 is not None: log.append(newline_tabbed_insert+section4)
         return "".join(log)
 
     def get_requested_id(self, action: str, endpoint: str, body: str, status_codes: set, name: str, description: str, value: str) -> str:
