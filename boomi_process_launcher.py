@@ -111,10 +111,10 @@ class BoomiAPI():
         """Format message into OpCon log output format using time complexity O(n)
         
         Args:
-            0 (str): log section 1
-            1 (str, optional): log section 2. Defaults to None.
-            2 (str, optional): log section 3. Defaults to None.
-            3 (str, optional): log section 4. Defaults to None.
+            section1 (str): log section 1
+            0 (str, optional): log section 2. Defaults to None.
+            1 (str, optional): log section 3. Defaults to None.
+            2 (str, optional): log section 4. Defaults to None.
             
         Returns: 
             log (str): formatted log message
