@@ -29,6 +29,7 @@ import time
 class BoomiAPI():
     """Call Boomi API to execute process using atom name, process name and optional dynamic process properties"""
     CONFIGURATION_FILENAME     = r'\boomi_process_launcher.ini'
+    CONNECTION_TIMEOUT         = 30
     EXECUTION_STATUS           = {
         'KNOWN': ['ABORTED', 'COMPLETE', 'COMPLETE_WARN', 'DISCARDED', 'ERROR', 'STARTED'],
         'SUCCESS': ['COMPLETE', 'COMPLETE_WARN'],
@@ -77,7 +78,7 @@ class BoomiAPI():
             password (str): Boomi password
         """
         # Setup API connection
-        self.connection = http.client.HTTPSConnection(self.api_url)
+        self.connection = http.client.HTTPSConnection(self.api_url, timeout=self.CONNECTION_TIMEOUT)
         
         # Setup API headers
         login           = f"{self.username}:{self.password}".encode("utf-8")
