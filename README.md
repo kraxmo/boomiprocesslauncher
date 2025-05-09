@@ -1,12 +1,16 @@
 # boomiprocesslauncher
-This script runs a Boomi integration process via Boomi API call.
+This pythonic script runs a Boomi integration process via Boomi API call.
 
-It verifies the following:
+It does the following:
 1. Valid atom name
 2. Valid atom environment
 3. Valid process name
 4. Valid process deployed in atom environment
+5. If optional -w or -wait parameter is specified, 
+   script will attempt to wait for process to complete (successful or fail)
 
-It executes the process and verifies it has been queued for execution
+UNIT TESTING:
 
-If optional -w or -wait parameter is specified, script will attempt to wait for process to complete (successful or fail)
+test_boomi_process_launcher.py mock tests all API calls *without* communicating with Boomi Atom API layer:
+
+>py -m unittest test_boomi_process_launcher.py
