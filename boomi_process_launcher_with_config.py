@@ -1,24 +1,26 @@
-#boomi_process_launcher.py
+#boomi_process_launcher_with_config.py
 """
-Launch Boomi Process via API calls
+Launch Boomi Process via API calls using configuration file settings
 
 This script initiates a request to execute a Boomi atom integration process 
+- references with configuration file settings to prevent hardcoding of API settings and user credentials
 - uses published Boomi API calls 
 - can reference dynamical process properties (optional) 
 - can wait (optionally) for execution completion (either SUCCESS or FAILURE).
 
 External Dependencies:
-- None
+- boomi_process_launcher.ini
 
 Command Line Execution:
-- Windows     : py boomi_process_launcher.py "api_url" "path_url" "username" "password" "atom_name" "process_name" -d "property_key1:property_value1;property_key2:property_value2"
-- Windows wait: py boomi_process_launcher.py "api_url" "path_url" "username" "password" "atom_name" "process_name" -d "property_key1:property_value1;property_key2:property_value2" -w
-- Unix        : py boomi_process_launcher.py 'api_url' 'path_url' 'username' 'password' 'atom_name' 'process_name' -d 'property_key1:property_value1;property_key2:property_value2'
-- Unix    wait: py boomi_process_launcher.py 'api_url' 'path_url' 'username' 'password' 'atom_name' 'process_name' -d 'property_key1:property_value1;property_key2:property_value2' -w
+- Windows     : py boomi_process_launcher.py "atom_name" "process_name" -d "property_key1:property_value1;property_key2:property_value2"
+- Windows wait: py boomi_process_launcher.py "atom_name" "process_name" -d "property_key1:property_value1;property_key2:property_value2" -w
+- Unix        : py boomi_process_launcher.py 'atom_name' 'process_name' -d 'property_key1:property_value1;property_key2:property_value2'
+- Unix    wait: py boomi_process_launcher.py 'atom_name' 'process_name' -d 'property_key1:property_value1;property_key2:property_value2' -w
 """
 
 import argparse                         # parses command-line arguments
 from base64 import b64encode
+from configparser import ConfigParser   # parse configuration file elements
 from datetime import(
     datetime,
     timezone,
@@ -26,10 +28,12 @@ from datetime import(
 import http.client
 import inspect                          # inspects call stack to determine currently executing function name
 import json
+from os import path
+import sys
 import time
 
 class BoomiAPI():
-    """Call Boomi API to execute process using api, path, username, password, atom name, process name and optional dynamic process properties"""
+    """Call Boomi API to execute process using atom name, process name and optional dynamic process properties"""
     CONFIGURATION_FILENAME     = r'\boomi_process_launcher.ini'
     CONNECTION_TIMEOUT         = 30
     EXECUTION_STATUS           = {
@@ -49,13 +53,9 @@ class BoomiAPI():
     TOTAL_TRIES                = 3
     VALID_RESPONSE_CODES       = {RESPONSE_CODE_200_OK, RESPONSE_CODE_202_ACCEPTED}
 
-    def __init__(self, api_url: str, path_url: str, username: str, password: str, atom_name: str, process_name: str, wait: bool = False, dynamic_properties: str = None, verbose: bool = False):
+    def __init__(self, atom_name: str, process_name: str, wait: bool = False, dynamic_properties: str = None, verbose: bool = False):
         self.exit_code = self.EXIT_CODE_ERROR   # set script return exit code to FAILURE
         try:
-            self.api_url            = api_url
-            self.path_url           = path_url
-            self.username           = username
-            self.password           = password
             if atom_name:
                 self.atom_name      = atom_name.strip()
             else:
@@ -320,7 +320,7 @@ class BoomiAPI():
         """
         method_signature = f"{__class__.__name__}.{inspect.stack()[0][3]}()"
         if not self.dynamic_properties.strip():
-            return {}
+            return ''
         
         try:
             dynamic_properties_list = []
@@ -344,6 +344,25 @@ class BoomiAPI():
             print(self.format_log_message("Parsing dynamic process properties", None, err, method_signature if self.verbose==True else None))
             raise ScriptExitException   # exit script
 
+    def retrieve_api_settings(self) -> None:
+        """Read Boomi API configuration file settings"""
+        method_signature = f"{__class__.__name__}.{inspect.stack()[0][3]}()"
+        try:
+            config_file = path.dirname(path.realpath(sys.argv[0]))+self.CONFIGURATION_FILENAME
+            config   = ConfigParser()
+            config.read(config_file)
+            key      = "connection"
+            api_url  = config.get(key, "api_url")
+            path_url = config.get(key, "path_url")
+            username = config.get(key, "username")
+            password = config.get(key, "password")
+
+        except Exception as err:
+            print(self.format_log_message(f"Reading configuration file {config_file}", None, err, method_signature if self.verbose==True else None))
+            raise ScriptExitException   # exit script
+            
+        self.api_url, self.path_url, self.username, self.password = api_url, path_url, username, password
+
     def run_process(self) -> None:
         """Run Boomi atom process"""
         try:
@@ -360,7 +379,7 @@ class BoomiAPI():
             self.wait               = wait
             self.dynamic_properties = dynamic_properties
 
-            # self.retrieve_api_settings()
+            self.retrieve_api_settings()
             self.connect_to_api()
             self.verify_atom_exists()
             self.verify_atom_environment_exists()
@@ -444,33 +463,29 @@ This script initiates a request to execute a Boomi atom process with dynamical p
 
 '''
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(
-        description="Execute a Boomi process and wait for completion",
-        epilog=HELP_EPILOG,
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
-    parser.add_argument("api_url", help="Boomi API URL")
-    parser.add_argument("path_url", help="Boomi API Path URL")
-    parser.add_argument("username", help="Boomi API Username")
-    parser.add_argument("password", help="Boomi API Password")
-    parser.add_argument("atom_name", help="Boomi Atom name where process will run")
-    parser.add_argument("process_name", help="Boomi Process name that will executon on atom")
-    parser.add_argument("-w", "--wait", help='Indicates if the script should wait for the job to complete (Default: No Wait)', action="store_true")
-    parser.add_argument("-d", "--dynamicprops", help='Key:pair Boomi dynamic process properties seperated by a semicolon.\n\n\tIf the property values contain spaces, wrap the entire sequence in double quotes.\n\n\tExample: "DPP_1:abc123;DPP_2:xyz 321"', default='')
     if DEBUG:
-        args = parser.parse_args('"atom_name", "process_name", "key1:value1;key2:value2", True, True')
+        atom_name = "atom_name"
+        process_name = "process_name"
+        dynamic_properties = "key1:value1;key2:value2"
+        wait = True
+        verbose = True
     else:
+        parser = argparse.ArgumentParser(
+            description="Execute a Boomi process and wait for completion",
+            epilog=HELP_EPILOG,
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+        )
+        parser.add_argument("atom_name", help="Boomi Atom name where process will run")
+        parser.add_argument("process_name", help="Boomi Process name that will executon on atom")
+        parser.add_argument("-w", "--wait", help='Indicates if the script should wait for the job to complete (Default: No Wait)', action="store_true")
+        parser.add_argument("-d", "--dynamicprops", help='Key:pair Boomi dynamic process properties seperated by a semicolon.\n\n\tIf the property values contain spaces, wrap the entire sequence in double quotes.\n\n\tExample: "DPP_1:abc123;DPP_2:xyz 321"', default='')
         args = parser.parse_args()
+        
+        atom_name = args.atom_name
+        process_name = args.process_name
+        wait = args.wait
+        dynamic_properties = args.dynamicprops
+        verbose = False
 
-    api_url = args.api_url
-    path_url = args.path_url
-    username = args.username
-    password = args.password        
-    atom_name = args.atom_name
-    process_name = args.process_name
-    wait = args.wait
-    dynamic_properties = args.dynamicprops
-    verbose = False
-
-    launcher = BoomiAPI(api_url, path_url, username, password, atom_name, process_name, wait, dynamic_properties, verbose)
+    launcher = BoomiAPI(atom_name, process_name, wait, dynamic_properties, verbose)
     launcher.run_process()
