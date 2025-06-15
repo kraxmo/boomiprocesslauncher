@@ -456,36 +456,37 @@ class ScriptExitException(Exception):
     """
     pass
 
-DEBUG = False
+DEBUG = False  # Set to True for debugging, False for production
 HELP_EPILOG = '''
 
 This script initiates a request to execute a Boomi atom process with dynamical process properties (optional) and can wait (optionally) for execution completion (either SUCCESS or FAILURE).
 
 '''
 if __name__ == "__main__":
+    parser = argparse.ArgumentParser(
+        description="Execute a Boomi process and wait for completion",
+        epilog=HELP_EPILOG,
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+    )
+    parser.add_argument("-a", "--atomname", type=str, required=True, help="Boomi Atom name where process will run")
+    parser.add_argument("-j", "--jobname", type=str, required=True, help="Boomi Process name that will executon on atom")
+    parser.add_argument("-w", "--wait", default="True", help='Indicates if the script should wait for the job to complete (Default: Wait)')
+    parser.add_argument("-d", "--dynamicprops", default="", help='Key:pair Boomi dynamic process properties seperated by a semicolon.\n\n\tIf the property values contain spaces, wrap the entire sequence in double quotes.\n\n\tExample: "DPP_1:abc123;DPP_2:xyz 321"')
     if DEBUG:
-        atom_name = "atom_name"
-        process_name = "process_name"
-        dynamic_properties = "key1:value1;key2:value2"
-        wait = True
+        args = parser.parse_args(args=[
+            '-a', 'atom_name',
+            '-j', 'job_name',
+            '-w',  'True',
+            '-d',  "key1:value1;key2:value2",
+        ])
         verbose = True
     else:
-        parser = argparse.ArgumentParser(
-            description="Execute a Boomi process and wait for completion",
-            epilog=HELP_EPILOG,
-            formatter_class=argparse.RawDescriptionHelpFormatter,
-        )
-        parser.add_argument("atom_name", help="Boomi Atom name where process will run")
-        parser.add_argument("process_name", help="Boomi Process name that will executon on atom")
-        parser.add_argument("-w", "--wait", help='Indicates if the script should wait for the job to complete (Default: No Wait)', action="store_true")
-        parser.add_argument("-d", "--dynamicprops", help='Key:pair Boomi dynamic process properties seperated by a semicolon.\n\n\tIf the property values contain spaces, wrap the entire sequence in double quotes.\n\n\tExample: "DPP_1:abc123;DPP_2:xyz 321"', default='')
         args = parser.parse_args()
-        
-        atom_name = args.atom_name
-        process_name = args.process_name
-        wait = args.wait
-        dynamic_properties = args.dynamicprops
         verbose = False
-
+        
+    atom_name    = args.atomname
+    process_name = args.jobname
+    wait         = args.wait
+    dynamic_properties = args.dynamicprops
     launcher = BoomiAPI(atom_name, process_name, wait, dynamic_properties, verbose)
     launcher.run_process()
