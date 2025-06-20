@@ -437,11 +437,7 @@ class ScriptExitException(Exception):
     """
     pass
 
-<<<<<<< HEAD
 DEBUG = False   # set to True to enable debug mode, False for production mode
-=======
-DEBUG = False   # Set to True for debugging, False for production
->>>>>>> 846fa9566cde9aaa731f0f3ab3ef0f8df77883cf
 HELP_EPILOG = '''
 
 This script initiates a request to execute a Boomi atom process with dynamical process properties (optional) and can wait (optionally) for execution completion (either SUCCESS or FAILURE).
@@ -454,7 +450,6 @@ if __name__ == "__main__":
         formatter_class=argparse.RawDescriptionHelpFormatter,
         exit_on_error=True,
     )
-<<<<<<< HEAD
     parser.add_argument("username", type=str, help="Boomi API Username")
     parser.add_argument("password", type=str, help="Boomi API Password")
     parser.add_argument("atom_name", help="Boomi Atom name where process will run")
@@ -469,29 +464,12 @@ if __name__ == "__main__":
             'process_name',
             '-w',
             '-d', 'key1:value1;key2:value2',
-=======
-    parser.add_argument("-u", "--username", type=str, required=True, help="Boomi API Username")
-    parser.add_argument("-p", "--password", type=str, required=True, help="Boomi API Password")
-    parser.add_argument("-a", "--atomname", type=str, required=True, help="Boomi Atom name where process will run")
-    parser.add_argument("-j", "--jobname", type=str, required=True, help="Boomi Process name that will executon on atom")
-    parser.add_argument("-w", "--wait", default="True", help='Indicates if the script should wait for the job to complete (Default: Wait)')
-    parser.add_argument("-d", "--dynamicprops", default="", help='Key:pair Boomi dynamic process properties seperated by a semicolon.\n\n\tIf the property values contain spaces, wrap the entire sequence in double quotes.\n\n\tExample: "DPP_1:abc123;DPP_2:xyz 321"')
-    if DEBUG:
-        args = parser.parse_args(args=[
-            '-u', 'username',
-            '-p', 'password',
-            '-a', 'atom_name',
-            '-j', 'job_name',
-            '-w',  'True',
-            '-d',  "key1:value1;key2:value2",
->>>>>>> 846fa9566cde9aaa731f0f3ab3ef0f8df77883cf
         ])
         verbose = True
     else:
         args = parser.parse_args()
         verbose = False
-<<<<<<< HEAD
-        
+
     api_url      = "Boomi API URL"
     path_url     = "Boomi API Path URL"
     username     = args.username
@@ -502,16 +480,4 @@ if __name__ == "__main__":
     verbose      = False
     dynamic_properties = args.dynamicprops
     launcher = BoomiAPI(api_url, path_url, username, password, atom_name, process_name, wait, dynamic_properties, verbose)
-=======
-
-    api_url  = 'api.boomi.com'
-    path_url = '/api/rest/v1/schoolsfirstfederalcredit-P1B39S'
-    username = args.username
-    password = args.password        
-    atomname = args.atomname
-    jobname  = args.jobname
-    wait     = args.wait
-    dynamic_properties = args.dynamicprops
-    launcher = BoomiAPI(api_url, path_url, username, password, atomname, jobname, wait, dynamic_properties, verbose)
->>>>>>> 846fa9566cde9aaa731f0f3ab3ef0f8df77883cf
     launcher.run_process()
