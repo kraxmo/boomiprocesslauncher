@@ -12,7 +12,6 @@ It verifies the following:
 8. Valid process deployed in atom environment
 
 It executes the process and verifies it has been queued for execution
-
 If optional -w or -wait parameter is specified, script will attempt to wait for process to complete (successful or fail)
 
 # test_boomi_process_launcher.py
