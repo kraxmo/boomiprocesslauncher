@@ -42,14 +42,15 @@ class BoomiAPI():
     EXIT_CODE_ERROR            = 1
     GROUP1_LENGTH              = 32
     MAX_WAIT_SECONDS           = 60
+    NEWLINE_TABBED_INSERT      = "\n\t\t\t\t"
     RESPONSE_CODE_200_OK       = 200
     RESPONSE_CODE_202_ACCEPTED = 202
     TOTAL_ATTEMPTS             = 1440
     TOTAL_ERRORS               = 3
     TOTAL_TRIES                = 3
     VALID_RESPONSE_CODES       = {RESPONSE_CODE_200_OK, RESPONSE_CODE_202_ACCEPTED}
-
-    def __init__(self, api_url: str, path_url: str, username: str, password: str, atom_name: str, process_name: str, wait: bool = False, dynamic_properties: str = None, verbose: bool = False):
+        
+    def __init__(self, api_url: str, path_url: str, username: str, password: str, atom_name: str, process_name: str, wait: bool = False, dynamic_properties: str = "", verbose: bool = False):
         self.exit_code = self.EXIT_CODE_ERROR   # set script return exit code to FAILURE
         try:
             self.api_url            = api_url
@@ -71,7 +72,18 @@ class BoomiAPI():
             self.wait               = wait
             self.dynamic_properties = dynamic_properties
             self.verbose            = verbose
-
+            
+            self.connection         = None
+            self.headers            = None 
+            self.response           = None
+            self.execution_status   = ''
+            self.execution_completed_timestamp = ''
+            self.atom_id            = None
+            self.deployment_id      = None
+            self.execution_id       = None
+            self.component_id       = None
+            self.environment_id     = None
+            
         except ScriptExitException:
             exit(self.exit_code)
 
@@ -119,27 +131,33 @@ class BoomiAPI():
         
         Args:
             section1 (str): log section 1
-            0 (str, optional): log section 2. Defaults to None.
-            1 (str, optional): log section 3. Defaults to None.
-            2 (str, optional): log section 4. Defaults to None.
+            args:
+                0 (str, optional): log section 2. Defaults to None.
+                1 (str, optional): log section 3. Defaults to None.
+                2 (str, optional): log section 4. Defaults to None.
             
         Returns: 
             log (str): formatted log message
         """
-        if section1 is None and len(args) < 1: return ""
-        GROUP1_LENGTH         = 31
-        NEWLINE_TABBED_INSERT = "\n\t\t\t\t"
+        if section1 is None:
+            if len(args) < 1:
+                return ""
+            
+            section1 = ""
+            
         log = [str(datetime.now())+"\t"]
-        if section1 is None: section1 = ""
-        if len(args) >= 1 and args[0] is not None: 
-            log.append(section1.ljust(GROUP1_LENGTH)[:GROUP1_LENGTH] + ' ' + args[0])
-        else: 
+        if len(args) >= 1 and args[0] is not None:
+            log.append(section1.ljust(self.GROUP1_LENGTH)[:self.GROUP1_LENGTH] + args[0])
+        else:
             log.append(section1)
+
         for ctr, value in enumerate(args[1:]):
-            if len(args) >= ctr and value is not None: log.append(NEWLINE_TABBED_INSERT+value)
+            if len(args) >= ctr and value is not None:
+                log.append(self.NEWLINE_TABBED_INSERT + value)
+            
         return "".join(log)
 
-    def get_requested_id(self, action: str, endpoint: str, body: str, status_codes: set, name: str, description: str, value: str) -> str:
+    def get_requested_id(self, action: str, endpoint: str, body: str, status_codes: set, name: str, description: str, value: str):
         """Retrieve requested id using API endpoint and body
 
         Args:
@@ -165,20 +183,23 @@ class BoomiAPI():
 
                 if status == self.RESPONSE_CODE_200_OK:
                     if action =='query':   # query (lookup) requested id
+                        results = 0
                         if 'numberOfResults' in self.response:
-                            results = self.response['numberOfResults']
+                            results: int = self.response['numberOfResults']
                             if results == 1:
                                 if 'status' in self.response['result'][0]:
                                     execution_status = self.response['result'][0]['status']
 
                                 if description == 'Deployment':
                                     names = name.split(',')
-                                    print(self.format_log_message(f"{names[0]}:", f"{self.response['result'][0][names[0]]}"))
-                                    print(self.format_log_message(f"{names[1]}:", f"{self.response['result'][0][names[1]]}"))
-                                    return self.response['result'][0][names[0]], self.response['result'][0][names[1]]   # return deploymentId, componentId
-                                else:
-                                    print(self.format_log_message(f"{description} ID:", self.response['result'][0][name]))
-                                    return self.response['result'][0][name]  # return requested id
+                                    deployment_id = self.response['result'][0][names[0]]
+                                    component_id  = self.response['result'][0][names[1]]
+                                    print(self.format_log_message(f"{names[0]}:", f"{deployment_id}"))
+                                    print(self.format_log_message(f"{names[1]}:", f"{component_id}"))
+                                    return deployment_id, component_id
+                                
+                                print(self.format_log_message(f"{description} ID:", self.response['result'][0][name]))
+                                return self.response['result'][0][name]  # return requested id
                             
                         print(self.format_log_message(f"{results} {description} found with name '{value}'", None, method_signature if self.verbose==True else None))
                         raise ScriptExitException   # exit script
@@ -214,10 +235,10 @@ class BoomiAPI():
         }
         payload.update(self.parse_dynamic_properties())
         body = json.dumps(payload)
-        print(self.format_log_message(f"Starting process:", self.process_name))
+        print(self.format_log_message("Starting process:", self.process_name))
         self.execution_id = self.get_requested_id('execution', endpoint, body, {self.RESPONSE_CODE_200_OK}, 'requestId', f"Request", self.atom_name+'|'+self.process_name)
         if self.execution_id == '':
-            print(self.format_log_message(f"Failed to start process", "Check Boomi for details"))
+            print(self.format_log_message("Failed to start process", "Check Boomi for details"))
             raise ScriptExitException   # exit script
 
     def make_api_request(self, method: str, endpoint: str, body: str, status_codes: set):
@@ -247,7 +268,7 @@ class BoomiAPI():
                 if status in status_codes:
                     return json.loads(response.read().decode("utf-8")), status, message
 
-                print(self.format_log_message("Failed to start process", "Retrying in {self.MAX_WAIT_SECONDS} seconds"))
+                print(self.format_log_message("Failed to start process", f"Retrying in {self.MAX_WAIT_SECONDS} seconds"))
                 time.sleep(self.MAX_WAIT_SECONDS)
 
         except Exception as err:
@@ -262,8 +283,8 @@ class BoomiAPI():
 
         Returns: wait_seconds (int): wait_seconds in seconds
         """
-        method_signature = f"{__class__.__name__}.{inspect.stack()[0][3]}({wait}, {wait_seconds})"
-        endpoint = self.path_url + f"/ExecutionRecord/async/{self.execution_id}"
+        method_signature      = f"{__class__.__name__}.{inspect.stack()[0][3]}({wait}, {wait_seconds})"
+        endpoint              = self.path_url + f"/ExecutionRecord/async/{self.execution_id}"
         self.execution_status = 'STATUS PENDING'
         self.execution_completed_timestamp = ''
         errors   = 0
@@ -292,8 +313,8 @@ class BoomiAPI():
                                 continue                                
                                 
                             if 'recordedDate' in self.response['result'][0]:
-                                recordedDate = datetime.strptime(self.response['result'][0]['recordedDate'],"%Y-%m-%dT%H:%M:%SZ")
-                                self.execution_completed_timestamp = self.convert_from_iso_to_local_datetime(recordedDate)
+                                recorded_date = datetime.strptime(self.response['result'][0]['recordedDate'],"%Y-%m-%dT%H:%M:%SZ")
+                                self.execution_completed_timestamp = self.convert_from_iso_to_local_datetime(recorded_date)
 
                             break
 
@@ -303,7 +324,7 @@ class BoomiAPI():
                 attempts += 1
                 errors += 1
                 self.execution_status = 'UNKNOWN'
-                print(self.format_log_message(f"GET Execution Status:", f"{status} {message} ({self.execution_status})", f"Retry attempt #{attempts}: retrying in {self.MAX_WAIT_SECONDS} seconds"))
+                print(self.format_log_message("GET Execution Status:", f"{status} {message} ({self.execution_status})", f"Retry attempt #{attempts}: retrying in {self.MAX_WAIT_SECONDS} seconds"))
                 time.sleep(self.MAX_WAIT_SECONDS)
 
         except Exception as err:
@@ -357,8 +378,8 @@ class BoomiAPI():
                 raise ScriptExitException   # exit script
 
             self.process_name       = self.process_name.strip()
-            self.wait               = wait
-            self.dynamic_properties = dynamic_properties
+            # self.wait               = wait
+            # self.dynamic_properties = dynamic_properties
 
             # self.retrieve_api_settings()
             self.connect_to_api()
@@ -376,7 +397,7 @@ class BoomiAPI():
             # exit script if waiting for Boomi process to finish is *NOT* required
             if not self.wait:
                 if self.execution_status in self.EXECUTION_STATUS["TERMINATED"]:
-                    print(self.format_log_message(f"Process failed to start", None, f"{self.execution_status}"))
+                    print(self.format_log_message("Process failed to start", None, f"{self.execution_status}"))
                 else:                    
                     print(self.format_log_message(f"Process successfully sent to Boomi Atom {self.atom_name}"))
                     self.exit_code = self.EXIT_CODE_SUCCESS # set execution for successful processing status
@@ -412,7 +433,7 @@ class BoomiAPI():
 
     def verify_atom_exists(self) -> None:
         """Get Boomi Atom Id to verify Atom Name is valid"""
-        endpoint = self.path_url + f"/Atom/query"
+        endpoint = self.path_url + "/Atom/query"
         body     = json.dumps({'QueryFilter':{'expression':{'argument':[self.atom_name],'operator':'EQUALS','property':'name'}}})
         self.atom_id = self.get_requested_id('query', endpoint, body, {self.RESPONSE_CODE_200_OK}, 'id', "Atom", self.atom_name)
 

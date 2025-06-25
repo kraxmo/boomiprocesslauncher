@@ -77,9 +77,9 @@ class TestPrintLogMessage(ut1.TestCase):
                 elif lines == '2':
                     self.assertEqual(f"{datetime.datetime.now()}\t{group1.ljust(self.boomi.GROUP1_LENGTH)}", log)
                 elif lines == '1+2+n':
-                    self.assertEqual(f"{datetime.datetime.now()}\t{group1.ljust(self.boomi.GROUP1_LENGTH)}{group2}\n\t\t\t\t{group3}", log)
+                    self.assertEqual(f"{datetime.datetime.now()}\t{group1.ljust(self.boomi.GROUP1_LENGTH)}{group2}{self.boomi.NEWLINE_TABBED_INSERT}{group3}", log)
                 elif lines == '4':
-                    self.assertEqual(f"{datetime.datetime.now()}\t{group1.ljust(self.boomi.GROUP1_LENGTH)}{group2}\n\t\t\t\t{group3}\n\t\t\t\t{group4}", log)
+                    self.assertEqual(f"{datetime.datetime.now()}\t{group1.ljust(self.boomi.GROUP1_LENGTH)}{group2}{self.boomi.NEWLINE_TABBED_INSERT}{group3}{self.boomi.NEWLINE_TABBED_INSERT}{group4}", log)
 
 class TestRequestResponse(ut1.TestCase):
     def setUp(self):

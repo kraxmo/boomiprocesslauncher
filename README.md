@@ -14,5 +14,8 @@ It verifies the following:
 It executes the process and verifies it has been queued for execution
 If optional -w or -wait parameter is specified, script will attempt to wait for process to complete (successful or fail)
 
+# boomi_process_launcher_with_config.py
+This script reads sensitive execution information from boomi_process_launcher.ini and uses it to run boomi_process_launcher.py 
+
 # test_boomi_process_launcher.py
 This script runs a unittest vs. boomi_process_launcher.py
