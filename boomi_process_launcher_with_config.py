@@ -77,6 +77,6 @@ if __name__ == "__main__":
     process_name = args.process_name
     wait         = args.wait
     dynamic_properties = args.dynamicprops
-    api_url, path_url, username, password = retrieve_api_settings()    
+    api_url, path_url, username, password = retrieve_api_settings()
     launcher = BoomiAPI(api_url, path_url, username, password, atom_name, process_name, wait, dynamic_properties, verbose)
     launcher.run_process()

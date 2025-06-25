@@ -19,3 +19,6 @@ This script reads sensitive execution information from boomi_process_launcher.in
 
 # test_boomi_process_launcher.py
 This script runs a unittest vs. boomi_process_launcher.py
+
+# test_boomi_process_launcher_with_config.py
+This script runs a unittest vs. boomi_process_launcher_with_config.py

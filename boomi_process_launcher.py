@@ -19,6 +19,7 @@ Command Line Execution:
 
 import argparse                         # parses command-line arguments
 from base64 import b64encode
+from configparser import ConfigParser   # parse configuration file elements
 from datetime import(
     datetime,
     timezone,
@@ -26,7 +27,10 @@ from datetime import(
 import http.client
 import inspect                          # inspects call stack to determine currently executing function name
 import json
+from os import path
+import sys
 import time
+from typing import Tuple                # type hinting for function return values
 
 class BoomiAPI():
     """Call Boomi API to execute process using api, path, username, password, atom name, process name and optional dynamic process properties"""
@@ -365,6 +369,24 @@ class BoomiAPI():
             print(self.format_log_message("Parsing dynamic process properties", None, err, method_signature if self.verbose==True else None))
             raise ScriptExitException   # exit script
 
+    def retrieve_api_settings(self) -> Tuple[str, str, str, str]:
+        """Read Boomi API configuration file settings"""
+        config_file = path.dirname(path.realpath(sys.argv[0]))+r'\boomi_process_launcher.ini'
+        try:
+            config   = ConfigParser()
+            config.read(config_file)
+            key      = "connection"
+            api_url  = config.get(key, "api_url")
+            path_url = config.get(key, "path_url")
+            username = config.get(key, "username")
+            password = config.get(key, "password")
+
+        except Exception as ex:
+            print(f"Reading configuration file {config_file}\n{ex}")
+            exit(1)  # script exit point
+            
+        return api_url, path_url, username, password
+    
     def run_process(self) -> None:
         """Run Boomi atom process"""
         try:
