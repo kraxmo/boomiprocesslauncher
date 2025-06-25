@@ -27,23 +27,23 @@ from configparser import ConfigParser   # parse configuration file elements
 from os import path
 from typing import Tuple                # type hinting for function return values
 
-def retrieve_api_settings() -> Tuple[str, str, str, str]:
-    """Read Boomi API configuration file settings"""
-    config_file = path.dirname(path.realpath(sys.argv[0]))+r'\boomi_process_launcher.ini'
-    try:
-        config   = ConfigParser()
-        config.read(config_file)
-        key      = "connection"
-        api_url  = config.get(key, "api_url")
-        path_url = config.get(key, "path_url")
-        username = config.get(key, "username")
-        password = config.get(key, "password")
+# def retrieve_api_settings() -> Tuple[str, str, str, str]:
+#     """Read Boomi API configuration file settings"""
+#     config_file = path.dirname(path.realpath(sys.argv[0]))+r'\boomi_process_launcher.ini'
+#     try:
+#         config   = ConfigParser()
+#         config.read(config_file)
+#         key      = "connection"
+#         api_url  = config.get(key, "api_url")
+#         path_url = config.get(key, "path_url")
+#         username = config.get(key, "username")
+#         password = config.get(key, "password")
 
-    except Exception as ex:
-        print(f"Reading configuration file {config_file}\n{ex}")
-        exit(1)  # script exit point
+#     except Exception as ex:
+#         print(f"Reading configuration file {config_file}\n{ex}")
+#         exit(1)  # script exit point
         
-    return api_url, path_url, username, password
+#     return api_url, path_url, username, password
 
 DEBUG = False   # set to True to enable debug mode, False for production mode
 HELP_EPILOG = '''
@@ -77,6 +77,6 @@ if __name__ == "__main__":
     process_name = args.process_name
     wait         = args.wait
     dynamic_properties = args.dynamicprops
-    api_url, path_url, username, password = retrieve_api_settings()
+    api_url, path_url, username, password = BoomiAPI.retrieve_api_settings()
     launcher = BoomiAPI(api_url, path_url, username, password, atom_name, process_name, wait, dynamic_properties, verbose)
     launcher.run_process()
