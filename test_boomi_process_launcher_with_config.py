@@ -15,7 +15,7 @@ class TestConfigFile(ut1.TestCase):
     @identify
     def test_retrieve_api_settings(self):
         # test retrieving api settings from external config (needs to read Mock file instead)
-        api_url, path_url, username, password = BoomiAPI.retrieve_api_settings(self)
+        api_url, path_url, username, password = BoomiAPI.retrieve_api_settings()
         self.assertEqual("api.boomi.com", api_url)
         self.assertEqual("/api/rest/v1/BOOMI_ACCOUNT_NAME", path_url)
         self.assertEqual("BOOMI_USERNAME", username)

@@ -54,6 +54,25 @@ class BoomiAPI():
     TOTAL_TRIES                = 3
     VALID_RESPONSE_CODES       = {RESPONSE_CODE_200_OK, RESPONSE_CODE_202_ACCEPTED}
 
+    @staticmethod
+    def retrieve_api_settings() -> Tuple[str, str, str, str]:
+        """Read Boomi API configuration file settings"""
+        config_file = path.dirname(path.realpath(sys.argv[0]))+r'\boomi_process_launcher.ini'
+        try:
+            config   = ConfigParser()
+            config.read(config_file)
+            key      = "connection"
+            api_url  = config.get(key, "api_url")
+            path_url = config.get(key, "path_url")
+            username = config.get(key, "username")
+            password = config.get(key, "password")
+
+        except Exception as ex:
+            print(f"Reading configuration file {config_file}\n{ex}")
+            exit(1)  # script exit point
+            
+        return api_url, path_url, username, password
+    
     def __init__(self, api_url: str, path_url: str, username: str, password: str, atom_name: str, process_name: str, wait: bool = False, dynamic_properties: str = "", verbose: bool = False):
         self.exit_code = self.EXIT_CODE_ERROR   # set script return exit code to FAILURE
         try:
@@ -369,25 +388,6 @@ class BoomiAPI():
             print(self.format_log_message("Parsing dynamic process properties", None, err, method_signature if self.verbose==True else None))
             raise ScriptExitException   # exit script
 
-    @staticmethod
-    def retrieve_api_settings(self) -> Tuple[str, str, str, str]:
-        """Read Boomi API configuration file settings"""
-        config_file = path.dirname(path.realpath(sys.argv[0]))+r'\boomi_process_launcher.ini'
-        try:
-            config   = ConfigParser()
-            config.read(config_file)
-            key      = "connection"
-            api_url  = config.get(key, "api_url")
-            path_url = config.get(key, "path_url")
-            username = config.get(key, "username")
-            password = config.get(key, "password")
-
-        except Exception as ex:
-            print(f"Reading configuration file {config_file}\n{ex}")
-            exit(1)  # script exit point
-            
-        return api_url, path_url, username, password
-    
     def run_process(self) -> None:
         """Run Boomi atom process"""
         try:
