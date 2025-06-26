@@ -12,11 +12,22 @@ def identify(func):
     return wrapper
 
 class TestConfigFile(ut1.TestCase):
+    def setUp(self) -> None:
+        self.api_url, self.path_url, self.username, self.password = BoomiAPI.retrieve_api_settings()   
+
     @identify
     def test_retrieve_api_settings(self):
         # test retrieving api settings from external config (needs to read Mock file instead)
-        api_url, path_url, username, password = BoomiAPI.retrieve_api_settings()
-        self.assertEqual("api.boomi.com", api_url)
-        self.assertEqual("/api/rest/v1/BOOMI_ACCOUNT_NAME", path_url)
-        self.assertEqual("BOOMI_USERNAME", username)
-        self.assertEqual("BOOMI_PASSWORD", password)
+        self.assertEqual("api.boomi.com", self.api_url)
+
+    @identify
+    def test_retrieve_path_settings(self):
+        self.assertEqual("/api/rest/v1/BOOMI_ACCOUNT_NAME", self.path_url)
+
+    @identify
+    def test_username_settings(self):
+        self.assertEqual("BOOMI_USERNAME", self.username)
+
+    @identify
+    def test_retrieve_password_settings(self):
+        self.assertEqual("BOOMI_PASSWORD", self.password)
