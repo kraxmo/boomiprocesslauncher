@@ -20,30 +20,8 @@ Command Line Execution:
 """
 
 import argparse                         # parses command-line arguments
-import sys
 
 from boomi_process_launcher import BoomiAPI
-from configparser import ConfigParser   # parse configuration file elements
-from os import path
-from typing import Tuple                # type hinting for function return values
-
-# def retrieve_api_settings() -> Tuple[str, str, str, str]:
-#     """Read Boomi API configuration file settings"""
-#     config_file = path.dirname(path.realpath(sys.argv[0]))+r'\boomi_process_launcher.ini'
-#     try:
-#         config   = ConfigParser()
-#         config.read(config_file)
-#         key      = "connection"
-#         api_url  = config.get(key, "api_url")
-#         path_url = config.get(key, "path_url")
-#         username = config.get(key, "username")
-#         password = config.get(key, "password")
-
-#     except Exception as ex:
-#         print(f"Reading configuration file {config_file}\n{ex}")
-#         exit(1)  # script exit point
-        
-#     return api_url, path_url, username, password
 
 DEBUG = False   # set to True to enable debug mode, False for production mode
 HELP_EPILOG = '''
