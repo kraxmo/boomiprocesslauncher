@@ -401,10 +401,7 @@ class BoomiAPI():
                 raise ScriptExitException   # exit script
 
             self.process_name       = self.process_name.strip()
-            # self.wait               = wait
-            # self.dynamic_properties = dynamic_properties
 
-            # self.retrieve_api_settings()
             self.connect_to_api()
             self.verify_atom_exists()
             self.verify_atom_environment_exists()
