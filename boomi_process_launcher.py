@@ -28,6 +28,7 @@ import http.client
 import inspect                          # inspects call stack to determine currently executing function name
 import json
 from os import path
+import socket
 import sys
 import time
 from typing import Tuple                # type hinting for function return values
@@ -35,7 +36,6 @@ from typing import Tuple                # type hinting for function return value
 class BoomiAPI():
     """Call Boomi API to execute process using api, path, username, password, atom name, process name and optional dynamic process properties"""
     CONFIGURATION_FILENAME     = r'\boomi_process_launcher.ini'
-    CONNECTION_TIMEOUT         = 30
     EXECUTION_STATUS           = {
         'KNOWN': ['ABORTED', 'COMPLETE', 'COMPLETE_WARN', 'DISCARDED', 'ERROR', 'STARTED'],
         'SUCCESS': ['COMPLETE', 'COMPLETE_WARN'],
@@ -51,6 +51,7 @@ class BoomiAPI():
     RESPONSE_CODE_202_ACCEPTED = 202
     TOTAL_ATTEMPTS             = 1440
     TOTAL_ERRORS               = 3
+    TOTAL_TIMEOUT_SECONDS      = 60
     TOTAL_TRIES                = 3
     VALID_RESPONSE_CODES       = {RESPONSE_CODE_200_OK, RESPONSE_CODE_202_ACCEPTED}
 
@@ -119,7 +120,7 @@ class BoomiAPI():
             password (str): Boomi password
         """
         # Setup API connection
-        self.connection = http.client.HTTPSConnection(self.api_url, timeout=self.CONNECTION_TIMEOUT)
+        self.connection = http.client.HTTPSConnection(self.api_url, timeout=self.TOTAL_TIMEOUT_SECONDS)
         
         # Setup API headers
         login           = f"{self.username}:{self.password}".encode("utf-8")
@@ -198,7 +199,7 @@ class BoomiAPI():
         try:
             execution_status = 'SENDING'
             for _ in range(self.TOTAL_ATTEMPTS):
-                self.response, status, message = self.make_api_request('POST', endpoint, body, status_codes)
+                self.response, status, message = self.make_api_request('POST', endpoint, body, status_codes, self.TOTAL_TIMEOUT_SECONDS)
                 if action == "query":
                     print(self.format_log_message(f"POST {action.title()} {description} ID:", f"{status} {message}"))
                 else:
@@ -264,7 +265,7 @@ class BoomiAPI():
             print(self.format_log_message("Failed to start process", "Check Boomi for details"))
             raise ScriptExitException   # exit script
 
-    def make_api_request(self, method: str, endpoint: str, body: str, status_codes: set):
+    def make_api_request(self, method: str, endpoint: str, body: str, status_codes: set, wait_seconds: int) -> Tuple[dict, int, str]:
         """Make an HTTP request with retry logic
         
         Args:
@@ -272,6 +273,7 @@ class BoomiAPI():
             endpoint(str): HTTP API body url
             body (str): API request body
             status_codes(set): a set of valid HTTP Response Codes
+            wait_seconds (int): time to wait in seconds
             
         Returns Tuple:
             response (str): json-formatted API response
@@ -293,6 +295,10 @@ class BoomiAPI():
 
                 print(self.format_log_message("Failed to start process", f"Retrying in {self.MAX_WAIT_SECONDS} seconds"))
                 time.sleep(self.MAX_WAIT_SECONDS)
+
+        except socket.timeout as err:
+            print(self.format_log_message(f"ERROR HTTP {method} request timed out.", "Server took too long to respond.", err, method_signature if self.verbose==True else None))
+            raise ScriptExitException   # exit script
 
         except Exception as err:
             print(self.format_log_message(f"ERROR Processing HTTP {method} request", None, err, method_signature if self.verbose==True else None))
@@ -347,8 +353,8 @@ class BoomiAPI():
                 attempts += 1
                 errors += 1
                 self.execution_status = 'UNKNOWN'
-                print(self.format_log_message("GET Execution Status:", f"{status} {message} ({self.execution_status})", f"Retry attempt #{attempts}: retrying in {self.MAX_WAIT_SECONDS} seconds"))
-                time.sleep(self.MAX_WAIT_SECONDS)
+                print(self.format_log_message("GET Execution Status:", f"{status} {message} ({self.execution_status})", f"Retry attempt #{attempts}: retrying in {wait_seconds} seconds"))
+                time.sleep(wait_seconds)
 
         except Exception as err:
             print(self.format_log_message("Processing HTTP GET request", None, err, method_signature if self.verbose==True else None))
@@ -411,7 +417,7 @@ class BoomiAPI():
             # check to see if process is running
             self.execution_status = ""
             self.execution_completed_timestamp = ''
-            wait_seconds = 1
+            wait_seconds = self.TOTAL_TIMEOUT_SECONDS
             wait_seconds = self.monitor_process(False, wait_seconds)
             
             # exit script if waiting for Boomi process to finish is *NOT* required

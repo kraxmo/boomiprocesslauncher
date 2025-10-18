@@ -400,3 +400,35 @@ class TestRequestResponse(ut1.TestCase):
         self.boomi.execution_id = "56789"
         self.boomi.monitor_process(True, 1)
         self.assertEqual("INPROCESS", self.boomi.execution_status)
+
+    @identify
+    def test_monitor_process_500_wait_server_timeout_inprocess(self):
+        # test receiving an HTTP response 500 Internal Server Error UNKNOWN when monitoring a process name on Boomi server while waiting for process completion
+        self.boomi.make_api_request.return_value = {
+            '@type': 'QueryResult', 
+            'result': 
+                [
+                    {
+                        '@type': 'ExecutionRecord',
+                        'executionId': '67890',
+                        'account': 'account',
+                        'executionTime': '2025-01-14T18:49:42Z',
+                        'status': 'INPROCESS',
+                        'executionType': 'exec_manual',
+                        'processName': 'myprocess',
+                        'processId': '34567',
+                        'atomName': 'myatom',
+                        'atomId': '12345',
+                        'inboundDocumentCount': 1,
+                        'inboundErrorDocumentCount': 0,
+                        'outboundDocumentCount': 1,
+                        'executionDuration': ['Long', 0],
+                        'inboundDocumentSize': ['Long', 0],
+                        'outboundDocumentSize': ['Long', 00],
+                        'recordedDate': '2025-01-14T18:49:47Z'
+                    }
+                ]
+        }, 500, "Internal Server Error"
+        self.boomi.execution_id = "67890"
+        self.boomi.monitor_process(True, 3)
+        self.assertEqual("UNKNOWN", self.boomi.execution_status)
